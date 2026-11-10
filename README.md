@@ -33,30 +33,40 @@ Kits from GitHub must be allowed first (one time). This replaces the default lis
 sbx settings set kit.allowedSources '["docker.io/","github.com/nickschuch/"]'
 ```
 
-Then, from your project directory:
+Then describe the sandbox in an [environment file](https://docs.docker.com/ai/sandboxes/configuration/environment-files/). Save it as `sbxenv.yaml` next to your project directory, not inside it, so the agent can't change it:
 
-```bash
-sbx run claude --kit "git+https://github.com/nickschuch/sbx.git#dir=kit/t3code"
+```yaml
+schemaVersion: "1"
+agent: claude
+workspace: ./my-project
+
+kits:
+  - git+https://github.com/nickschuch/sbx.git#dir=kit/t3code
+
+ports:
+  - sandbox: 3773
+    host: 3773
 ```
 
-The steps below use `<sandbox>` as the sandbox name. Find it with:
+Set `workspace` to your project directory, relative to the file. Then, from the directory holding `sbxenv.yaml`, review the plan and start the sandbox:
+
+```bash
+sbx env plan
+sbx env run
+```
+
+The steps below use `<sandbox>` as the sandbox name. It defaults to `claude-<project directory name>`; confirm it with:
 
 ```bash
 sbx ls
 ```
 
-**3. Find the port**
+**3. Check the port**
 
-sbx publishes port 3773 to a random port on your host. Find it with:
+The environment file publishes T3 Code on `localhost:3773`. Confirm with:
 
 ```bash
 sbx ports <sandbox>
-```
-
-To use a fixed port instead, publish it yourself. The steps below assume `localhost:3773`:
-
-```bash
-sbx ports <sandbox> --publish 3773:3773/tcp
 ```
 
 **4. Log in to Claude (one time)**
@@ -86,7 +96,7 @@ To reach the sandbox from your other devices and get push notifications, link it
 ```bash
 sbx exec -it <sandbox> -- t3 connect link --headless
 sbx stop <sandbox>
-sbx run <sandbox>
+sbx env run
 ```
 
 Check the connection with `sbx exec <sandbox> -- t3 connect status`.
