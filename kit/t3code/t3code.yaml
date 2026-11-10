@@ -4,34 +4,14 @@ schemaVersion: "3"
 kind: mixin
 displayName: T3 Code
 author: Nick Schuch
-description: Runs the T3 Code web UI on port 3773, started in the sandbox workspace.
+description: Adds the T3 Code web UI, served on port 3773 by the environment file's entrypoint.
 sourceUrl: https://github.com/nickschuch/sbx
 
+# The kit only installs T3 Code (t3code.dockerfile) and exposes its port. A
+# mixin can't set the launch command, so sbxenv.yaml's `entrypoint` runs
+# `t3 serve` in the foreground; see the README.
 capabilities:
   - type: com.docker.sandbox/port@1
     config:
       name: t3code
       container: 3773
-
-  # Serve T3 Code (baked in by t3code.dockerfile) from the workspace and
-  # register the workspace as a project so it is ready without typing paths.
-  - type: com.docker.sandbox/lifecycle@1
-    config:
-      startup:
-        - description: Start T3 Code
-          background: true
-          user: agent
-          env:
-            - WORKSPACE_DIR
-          command: |
-            set -e
-            export PATH="$HOME/.local/bin:$PATH"
-            # Label Claude requests as T3 Code instead of sdk-cli/sdk-ts, which
-            # drain the 5-hour usage window faster. Remove once this lands upstream.
-            # https://github.com/pingdotgg/t3code/pull/25597
-            export CLAUDE_CODE_ENTRYPOINT=t3-code
-            cd "${WORKSPACE_DIR:-$HOME}"
-            exec /usr/local/bin/t3 serve --host 0.0.0.0 --port 3773 --auto-bootstrap-project-from-cwd "$PWD"
-
-  # Keep the sandbox running while T3 Code serves, even with no agent session.
-  - type: com.docker.sandbox/long-running@1
