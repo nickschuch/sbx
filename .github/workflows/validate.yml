@@ -1,0 +1,36 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Building a v3 source kit validates its descriptor and, for both
+      # architectures, the pinned release checksums. Needs no Docker sign-in.
+      - name: Validate kits
+        run: |
+          status=0
+          for spec in kit/*/*.yaml; do
+            dir="$(dirname "$spec")"
+            echo "::group::$spec"
+            docker buildx build --platform linux/amd64,linux/arm64 -f "$spec" "$dir" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
